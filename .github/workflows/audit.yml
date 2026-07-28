@@ -15,4 +15,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pip-audit
-      - run: pip-audit -e ".[all]"
+      - run: pip install ".[all]"
+      - run: pip-audit
