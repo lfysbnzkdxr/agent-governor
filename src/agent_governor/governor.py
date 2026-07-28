@@ -17,6 +17,8 @@ from agent_governor.data.dispatcher import Dispatcher
 from agent_governor.models import DagExecutionResult, Task, TaskResult
 from agent_governor.observability.audit import AuditLogger
 from agent_governor.observability.cost import CostTracker
+from agent_governor.observability.metrics import MetricsCollector
+from agent_governor.observability.tracing import TracingManager
 
 logger = structlog.get_logger(__name__)
 
@@ -84,10 +86,27 @@ class Governor:
             enabled=self._config.audit_enabled,
             log_file=self._config.audit_log_file,
         )
+
+        # Metrics (optional)
+        self._metrics: MetricsCollector | None = None
+        if self._config.tracing_enabled:
+            self._metrics = MetricsCollector(
+                otlp_endpoint=self._config.otlp_endpoint,
+            )
+
+        # Tracing (optional)
+        self._tracing: TracingManager | None = None
+        if self._config.tracing_enabled:
+            self._tracing = TracingManager(
+                otlp_endpoint=self._config.otlp_endpoint,
+            )
+
         self._dispatcher = Dispatcher(
             config=self._config,
             cost_tracker=self._cost_tracker,
             audit_logger=self._audit_logger,
+            tracing=self._tracing,
+            metrics=self._metrics,
         )
 
         logger.info(
@@ -126,25 +145,7 @@ class Governor:
         timeout: float | None = None,
         **params: Any,
     ) -> str:
-        """Execute an LLM call with governance controls.
-
-        This is the primary API - a governed replacement for litellm.completion().
-
-        Args:
-            messages: Chat messages in OpenAI format.
-            model: Model to use. Falls back to config.default_model.
-            name: Caller name for audit logging.
-            timeout: Override default timeout.
-            **params: Additional parameters passed to litellm (temperature, etc.)
-
-        Returns:
-            The LLM response content as a string.
-
-        Raises:
-            BudgetExceededError: If budget is exceeded.
-            ModelNotAllowedError: If model is not whitelisted.
-            ExecutionTimeoutError: If the call times out.
-        """
+        """Execute an LLM call with governance controls."""
         task = Task(
             name=name,
             model=model or self._config.default_model,
@@ -153,7 +154,18 @@ class Governor:
             timeout=timeout,
         )
 
-        result = await self._dispatcher.dispatch(task)
+        if self._tracing:
+            tracer = self._tracing.get_tracer()
+            if tracer:
+                with tracer.start_as_current_span("governor.execute") as span:
+                    span.set_attribute("agent_governor.model", task.model)
+                    span.set_attribute("agent_governor.task.name", task.name or "")
+                    result = await self._dispatcher.dispatch(task)
+                    span.set_attribute("agent_governor.status", "success" if not result.error else "error")
+            else:
+                result = await self._dispatcher.dispatch(task)
+        else:
+            result = await self._dispatcher.dispatch(task)
 
         if result.error:
             raise RuntimeError(f"Execution failed: {result.error}")
@@ -225,6 +237,19 @@ class Governor:
         self._audit_logger.clear()
         logger.info("governor_reset")
 
+    def shutdown(self) -> None:
+        """Flush and stop all observability background threads."""
+        if self._tracing:
+            self._tracing.shutdown()
+        if self._metrics:
+            self._metrics.shutdown()
+
+    async def __aenter__(self) -> Governor:
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        self.shutdown()
+
     async def run_graph(
         self,
         graph: TaskGraph,
@@ -262,5 +287,6 @@ class Governor:
             default_executor=_default_executor,
             default_timeout=default_timeout,
             fail_fast=fail_fast,
+            tracing=self._tracing,
         )
         return await engine.execute(graph, context=context)

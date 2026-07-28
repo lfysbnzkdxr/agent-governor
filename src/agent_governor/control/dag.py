@@ -24,6 +24,7 @@ from agent_governor.models import (
     TaskStatus,
     ValidationResult,
 )
+from agent_governor.observability.tracing import TracingManager
 from agent_governor.protocols import QualityGate
 
 logger = structlog.get_logger(__name__)
@@ -277,6 +278,7 @@ class DagExecutionEngine:
         default_timeout: float = 120.0,
         default_max_retries: int = 1,
         fail_fast: bool = True,
+        tracing: TracingManager | None = None,
     ) -> None:
         """Initialize the execution engine.
 
@@ -285,11 +287,13 @@ class DagExecutionEngine:
             default_timeout: Default timeout per node in seconds.
             default_max_retries: Default retry count per node.
             fail_fast: If True, cancel remaining nodes on first failure.
+            tracing: Optional TracingManager for OTel span creation.
         """
         self._default_executor = default_executor
         self._default_timeout = default_timeout
         self._default_max_retries = default_max_retries
         self._fail_fast = fail_fast
+        self._tracing = tracing
 
     async def execute(
         self,
@@ -422,17 +426,36 @@ class DagExecutionEngine:
             task.metadata["_upstream"] = upstream_contents
         task.metadata["_context"] = context
 
-        # Execute with retry
+        # Execute with retry and optional tracing
         last_error: Exception | None = None
         attempts = max_retries + 1
 
         for attempt in range(attempts):
             node_result.attempts = attempt + 1
             try:
-                result = await asyncio.wait_for(
-                    executor(task),
-                    timeout=timeout,
-                )
+                if self._tracing:
+                    tracer = self._tracing.get_tracer()
+                    if tracer:
+                        with tracer.start_as_current_span(f"dag.node.{node_id}") as span:
+                            span.set_attribute("agent_governor.node.id", node_id)
+                            span.set_attribute("agent_governor.task.name", task.name or "")
+                            result = await asyncio.wait_for(
+                                executor(task),
+                                timeout=timeout,
+                            )
+                            if hasattr(result, "status"):
+                                span.set_attribute("agent_governor.status", str(result.status))
+                    else:
+                        result = await asyncio.wait_for(
+                            executor(task),
+                            timeout=timeout,
+                        )
+                else:
+                    result = await asyncio.wait_for(
+                        executor(task),
+                        timeout=timeout,
+                    )
+
                 node_result.result = result
 
                 # Run quality gate if configured

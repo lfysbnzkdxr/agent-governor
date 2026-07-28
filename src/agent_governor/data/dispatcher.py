@@ -22,6 +22,8 @@ from agent_governor.exceptions import (
 from agent_governor.models import CallRecord, Task, TaskResult, TaskStatus, TokenUsage
 from agent_governor.observability.audit import AuditLogger
 from agent_governor.observability.cost import CostTracker
+from agent_governor.observability.metrics import MetricsCollector
+from agent_governor.observability.tracing import TracingManager
 
 logger = structlog.get_logger(__name__)
 
@@ -43,10 +45,14 @@ class Dispatcher:
         config: GovernorConfig,
         cost_tracker: CostTracker | None = None,
         audit_logger: AuditLogger | None = None,
+        tracing: TracingManager | None = None,
+        metrics: MetricsCollector | None = None,
     ) -> None:
         self._config = config
         self._cost_tracker = cost_tracker or CostTracker()
         self._audit_logger = audit_logger or AuditLogger(enabled=config.audit_enabled)
+        self._tracing = tracing
+        self._metrics = metrics
         self._semaphore = asyncio.Semaphore(config.max_concurrency)
 
     @property
@@ -80,7 +86,18 @@ class Dispatcher:
         # 2. Budget pre-check
         self._check_budget()
 
-        # 3. Execute with concurrency control and retry
+        # 3. Execute with concurrency control and retry (optionally traced)
+        if self._tracing:
+            tracer = self._tracing.get_tracer()
+            if tracer:
+                with tracer.start_as_current_span("dispatcher.dispatch") as span:
+                    span.set_attribute("agent_governor.model", model)
+                    span.set_attribute("agent_governor.task.name", task.name or "")
+                    async with self._semaphore:
+                        result = await self._execute_with_retry(task, model)
+                    span.set_attribute("agent_governor.status", str(result.status.value))
+                    return result
+
         async with self._semaphore:
             return await self._execute_with_retry(task, model)
 
@@ -127,6 +144,8 @@ class Dispatcher:
 
         # All attempts failed
         if last_error:
+            if self._metrics:
+                self._metrics.record_error(model, type(last_error).__name__)
             raise last_error
         return TaskResult(
             task_id=task.id,
@@ -195,6 +214,12 @@ class Dispatcher:
             )
         )
 
+        # Record metrics
+        if self._metrics:
+            self._metrics.record_call(model, "success")
+            self._metrics.record_latency(model, elapsed_ms)
+            self._metrics.record_tokens(model, prompt_tokens + completion_tokens)
+
         logger.info(
             "dispatch_success",
             task_id=task.id,
@@ -213,6 +238,8 @@ class Dispatcher:
             return  # No budget limit
 
         if not self._cost_tracker.check_budget(budget):
+            if self._metrics:
+                self._metrics.record_budget_exceeded()
             raise BudgetExceededError(
                 current_cost=self._cost_tracker.total_cost,
                 budget=budget,
