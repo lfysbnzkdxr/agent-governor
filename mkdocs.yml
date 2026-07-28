@@ -1,0 +1,37 @@
+site_name: Agent Governor
+site_description: Lightweight Agent governance and execution middleware
+repo_url: https://github.com/lfysbnzkdxr/agent-governor
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: indigo
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+nav:
+  - Home: index.md
+  - Getting Started: guides/quickstart.md
+  - DAG Workflows: guides/dag.md
+  - Observability: guides/observability.md
+  - API Reference:
+      - Governor: api/governor.md
+      - Models: api/models.md
+      - Control: api/control.md
+      - Data: api/data.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences

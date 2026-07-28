@@ -41,6 +41,10 @@ class GovernorConfig(BaseModel):
     max_retries: int = Field(default=2, ge=0, description="Max retries on failure")
     retry_delay: float = Field(default=1.0, gt=0, description="Delay between retries in seconds")
 
+    # Tracing (Phase 3)
+    tracing_enabled: bool = Field(default=False, description="Enable OTel distributed tracing")
+    otlp_endpoint: str = Field(default="", description="OTLP collector endpoint URL (e.g. http://localhost:4317)")
+
     def is_model_allowed(self, model: str) -> bool:
         """Check if a model is in the whitelist."""
         if not self.models:
