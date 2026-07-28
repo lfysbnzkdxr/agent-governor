@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
-from agent_governor.models import CallRecord, Task, TaskResult
+from agent_governor.models import CallRecord, Task, TaskResult, ValidationResult
 
 
 @runtime_checkable
@@ -21,8 +21,26 @@ class Executor(Protocol):
 
 
 @runtime_checkable
+class QualityGate(Protocol):
+    """Protocol for quality gate validators (richer than Validator).
+
+    Returns a structured ValidationResult instead of a simple bool,
+    enabling scoring, reasons, and detailed diagnostics.
+    """
+
+    @property
+    def name(self) -> str:
+        """Gate identifier for logging and reporting."""
+        ...
+
+    async def check(self, task: Task, result: TaskResult) -> ValidationResult:
+        """Validate a task result. Returns structured validation outcome."""
+        ...
+
+
+@runtime_checkable
 class Validator(Protocol):
-    """Protocol for quality gate validators."""
+    """Protocol for simple validators (bool-based, Phase 1 compat)."""
 
     async def validate(self, task: Task, result: TaskResult) -> bool:
         """Validate a task result. Returns True if passed."""

@@ -11,22 +11,38 @@ from agent_governor.exceptions import (
     ValidationError,
 )
 from agent_governor.governor import Governor
-from agent_governor.models import CallRecord, Task, TaskResult, TokenUsage
+from agent_governor.models import (
+    CallRecord,
+    DagExecutionResult,
+    DagNodeResult,
+    DagNodeStatus,
+    Task,
+    TaskResult,
+    TokenUsage,
+    ValidationResult,
+)
 
 __all__ = [
+    # Core
     "Governor",
     "GovernorConfig",
     "governed",
+    # Exceptions
     "GovernorError",
     "BudgetExceededError",
     "ModelNotAllowedError",
     "ExecutionTimeoutError",
     "CircuitOpenError",
     "ValidationError",
+    # Models
     "Task",
     "TaskResult",
     "CallRecord",
     "TokenUsage",
+    "ValidationResult",
+    "DagExecutionResult",
+    "DagNodeResult",
+    "DagNodeStatus",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

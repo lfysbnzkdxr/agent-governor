@@ -79,5 +79,51 @@ class CallRecord(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class ValidationResult(BaseModel):
+    """Result of a quality gate validation."""
+
+    passed: bool
+    gate_name: str = ""
+    score: float = 1.0
+    reason: str = ""
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class DagNodeStatus(str, Enum):
+    """Status of a DAG node during execution."""
+
+    PENDING = "pending"
+    READY = "ready"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+class DagNodeResult(BaseModel):
+    """Result of a single DAG node execution."""
+
+    node_id: str
+    status: DagNodeStatus = DagNodeStatus.PENDING
+    result: TaskResult | None = None
+    validation: ValidationResult | None = None
+    attempts: int = 0
+    error: str | None = None
+    started_at: float | None = None
+    completed_at: float | None = None
+
+
+class DagExecutionResult(BaseModel):
+    """Result of a full DAG execution."""
+
+    graph_id: str
+    status: TaskStatus = TaskStatus.PENDING
+    node_results: dict[str, DagNodeResult] = Field(default_factory=dict)
+    total_cost_usd: float = 0.0
+    total_latency_ms: float = 0.0
+    error: str | None = None
+
+
 # Rebuild models to resolve forward references
 TaskResult.model_rebuild()
+DagNodeResult.model_rebuild()

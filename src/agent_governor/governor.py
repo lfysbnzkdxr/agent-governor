@@ -12,8 +12,9 @@ from typing import Any
 import structlog
 
 from agent_governor.config import GovernorConfig
+from agent_governor.control.dag import DagExecutionEngine, TaskGraph
 from agent_governor.data.dispatcher import Dispatcher
-from agent_governor.models import Task, TaskResult
+from agent_governor.models import DagExecutionResult, Task, TaskResult
 from agent_governor.observability.audit import AuditLogger
 from agent_governor.observability.cost import CostTracker
 
@@ -223,3 +224,43 @@ class Governor:
         self._cost_tracker.reset()
         self._audit_logger.clear()
         logger.info("governor_reset")
+
+    async def run_graph(
+        self,
+        graph: TaskGraph,
+        *,
+        context: dict[str, Any] | None = None,
+        default_timeout: float = 120.0,
+        fail_fast: bool = True,
+    ) -> DagExecutionResult:
+        """Execute a TaskGraph (DAG) with governance controls.
+
+        This is the Level 2 API for multi-step agent workflows.
+        Each node in the graph is executed through the governor's dispatcher,
+        inheriting budget control, model whitelist, and audit logging.
+
+        Args:
+            graph: The task graph to execute.
+            context: Shared context accessible by all nodes.
+            default_timeout: Default timeout per node.
+            fail_fast: If True, skip remaining nodes on first failure.
+
+        Returns:
+            DagExecutionResult with per-node results.
+
+        Example:
+            graph = TaskGraph("my_workflow")
+            graph.add_node("step1", task=task1)
+            graph.add_node("step2", task=task2, depends_on=["step1"])
+            result = await governor.run_graph(graph)
+        """
+
+        async def _default_executor(task: Task) -> TaskResult:
+            return await self._dispatcher.dispatch(task)
+
+        engine = DagExecutionEngine(
+            default_executor=_default_executor,
+            default_timeout=default_timeout,
+            fail_fast=fail_fast,
+        )
+        return await engine.execute(graph, context=context)
