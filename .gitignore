@@ -33,3 +33,13 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Documents
+*项目方案*.md
+*.项目方案.*
+
+# Ruff cache
+.ruff_cache/
+
+# Log files
+*.log
