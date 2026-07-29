@@ -30,9 +30,6 @@ nav:
       - Models: api/models.md
       - Control: api/control.md
       - Data: api/data.md
-      - Policy Engine: api/policy.md
-      - Multi-Tenant: api/tenant.md
-      - Observability: api/observability.md
 
 markdown_extensions:
   - pymdownx.highlight:
