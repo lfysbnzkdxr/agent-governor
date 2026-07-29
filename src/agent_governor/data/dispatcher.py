@@ -204,6 +204,7 @@ class Dispatcher:
         await self._audit_logger.log(
             CallRecord(
                 caller=task.name or task.id,
+                tenant_id=task.tenant_id,
                 model=model,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,

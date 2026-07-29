@@ -14,13 +14,21 @@ import structlog
 from agent_governor.config import GovernorConfig
 from agent_governor.control.dag import DagExecutionEngine, TaskGraph
 from agent_governor.data.dispatcher import Dispatcher
+from agent_governor.exceptions import ModelNotAllowedError
 from agent_governor.models import DagExecutionResult, Task, TaskResult
 from agent_governor.observability.audit import AuditLogger
 from agent_governor.observability.cost import CostTracker
 from agent_governor.observability.metrics import MetricsCollector
 from agent_governor.observability.tracing import TracingManager
+from agent_governor.tenant.billing import BillingReport
+from agent_governor.tenant.config import MultiTenantConfig, TenantPolicy
+from agent_governor.tenant.manager import TenantManager
 
 logger = structlog.get_logger(__name__)
+
+# Resolve Pydantic forward ref for TenantPolicy (imported under TYPE_CHECKING in config.py
+# to break circular import chain: config → tenant.manager → data → config)
+GovernorConfig.model_rebuild(_types_namespace={"TenantPolicy": TenantPolicy})
 
 
 class Governor:
@@ -109,6 +117,15 @@ class Governor:
             metrics=self._metrics,
         )
 
+        # Multi-tenant support (optional)
+        self._tenant_manager: TenantManager | None = None
+        if self._config.tenant_policies:
+            tenant_config = MultiTenantConfig(
+                tenants={k: v for k, v in self._config.tenant_policies.items()},
+                default_policy=self._config.default_tenant_policy,
+            )
+            self._tenant_manager = TenantManager(tenant_config)
+
         logger.info(
             "governor_initialized",
             budget_usd=self._config.budget_usd or "unlimited",
@@ -142,35 +159,63 @@ class Governor:
         *,
         model: str = "",
         name: str = "",
+        tenant_id: str = "",
         timeout: float | None = None,
         **params: Any,
     ) -> str:
-        """Execute an LLM call with governance controls."""
+        """Execute an LLM call with governance controls.
+
+        Args:
+            messages: Chat messages to send.
+            model: Model to use (defaults to config.default_model).
+            name: Task name for audit logging.
+            tenant_id: Tenant identifier for multi-tenant governance.
+            timeout: Override default timeout.
+            **params: Additional parameters passed to litellm.
+        """
         task = Task(
             name=name,
+            tenant_id=tenant_id,
             model=model or self._config.default_model,
             messages=messages,
             params=params,
             timeout=timeout,
         )
 
+        # Multi-tenant governance checks
+        if tenant_id and self._tenant_manager:
+            self._tenant_manager.check_budget(tenant_id)
+            if not self._tenant_manager.check_model_allowed(tenant_id, task.model):
+                raise ModelNotAllowedError(task.model)
+            async with self._tenant_manager.acquire(tenant_id):
+                result = await self._dispatch_with_tracing(task)
+        else:
+            result = await self._dispatch_with_tracing(task)
+
+        if result.error:
+            raise RuntimeError(f"Execution failed: {result.error}")
+
+        # Record tenant usage
+        if tenant_id and self._tenant_manager and result.usage:
+            self._tenant_manager.record_usage(
+                tenant_id, result.model, result.usage.prompt_tokens, result.usage.completion_tokens
+            )
+
+        return result.content
+
+    async def _dispatch_with_tracing(self, task: Task) -> TaskResult:
+        """Internal: dispatch with optional tracing."""
         if self._tracing:
             tracer = self._tracing.get_tracer()
             if tracer:
                 with tracer.start_as_current_span("governor.execute") as span:
                     span.set_attribute("agent_governor.model", task.model)
                     span.set_attribute("agent_governor.task.name", task.name or "")
+                    span.set_attribute("agent_governor.tenant_id", task.tenant_id)
                     result = await self._dispatcher.dispatch(task)
                     span.set_attribute("agent_governor.status", "success" if not result.error else "error")
-            else:
-                result = await self._dispatcher.dispatch(task)
-        else:
-            result = await self._dispatcher.dispatch(task)
-
-        if result.error:
-            raise RuntimeError(f"Execution failed: {result.error}")
-
-        return result.content
+                    return result
+        return await self._dispatcher.dispatch(task)
 
     async def execute_task(self, task: Task) -> TaskResult:
         """Execute a Task object and return the full TaskResult.
@@ -220,7 +265,7 @@ class Governor:
 
     def get_stats(self) -> dict[str, Any]:
         """Get governor statistics including cost and usage."""
-        return {
+        stats: dict[str, Any] = {
             **self._dispatcher.get_stats(),
             "audit_records": self._audit_logger.total_records,
             "config": {
@@ -230,6 +275,22 @@ class Governor:
                 "max_concurrency": self._config.max_concurrency,
             },
         }
+        if self._tenant_manager:
+            stats["tenants"] = self._tenant_manager.get_all_summaries()
+        return stats
+
+    def get_tenant_stats(self, tenant_id: str) -> dict[str, Any]:
+        """Get usage statistics for a specific tenant."""
+        if not self._tenant_manager:
+            return {"error": "Multi-tenant mode not enabled"}
+        return self._tenant_manager.get_tenant_summary(tenant_id)
+
+    def get_billing_report(self, *, period: str = "") -> dict[str, Any]:
+        """Generate a billing report across all tenants."""
+        if not self._tenant_manager:
+            return {"error": "Multi-tenant mode not enabled"}
+        report = BillingReport(self._tenant_manager)
+        return report.generate(period=period)
 
     def reset(self) -> None:
         """Reset all tracking data (cost, audit records)."""

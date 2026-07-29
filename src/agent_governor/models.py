@@ -25,6 +25,7 @@ class Task(BaseModel):
 
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:12])
     name: str = ""
+    tenant_id: str = ""
     model: str = ""
     messages: list[dict[str, str]] = Field(default_factory=list)
     params: dict[str, Any] = Field(default_factory=dict)
@@ -68,6 +69,7 @@ class CallRecord(BaseModel):
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:16])
     timestamp: float = Field(default_factory=time.time)
     caller: str = ""
+    tenant_id: str = ""
     model: str = ""
     prompt_tokens: int = 0
     completion_tokens: int = 0
