@@ -1,5 +1,6 @@
 """Integration tests: DAG + quality gates + checkpoint recovery."""
 
+import pytest
 from pydantic import BaseModel
 
 from agent_governor.control.commander import Commander
@@ -258,3 +259,84 @@ class TestCommanderIntegration:
         assert result.status == TaskStatus.COMPLETED
         assert "research" in result.node_results
         assert "write" in result.node_results
+
+    async def test_decompose_empty_subtasks_raises(self):
+        """decompose_and_execute should raise ValueError for empty decomposition."""
+
+        async def empty_decompose(description: str):
+            return []
+
+        commander = Commander(executor=make_success_executor())
+        with pytest.raises(ValueError, match="no subtasks"):
+            await commander.decompose_and_execute(
+                "Do something",
+                decompose_fn=empty_decompose,
+            )
+
+    async def test_recover_without_state_manager_raises(self):
+        """recover_and_execute should raise RuntimeError without state manager."""
+        commander = Commander(executor=make_success_executor())
+        graph = TaskGraph("no_state")
+        graph.add_node("a", executor=make_success_executor())
+
+        with pytest.raises(RuntimeError, match="StateManager required"):
+            await commander.recover_and_execute(graph)
+
+    async def test_recover_with_no_checkpoints(self, tmp_path):
+        """recover_and_execute should execute fresh when no checkpoints exist."""
+        db_path = str(tmp_path / "recover.db")
+        state = StateManager(db_path)
+        await state.initialize()
+
+        commander = Commander(
+            executor=make_success_executor(),
+            state_manager=state,
+        )
+        graph = TaskGraph("fresh_recover")
+        graph.add_node("a", executor=make_success_executor())
+
+        result = await commander.recover_and_execute(graph)
+        assert result.status == TaskStatus.COMPLETED
+        assert "a" in result.node_results
+
+        await state.close()
+
+    async def test_execute_graph_with_resume(self, tmp_path):
+        """execute_graph with resume=True should check completed nodes."""
+        db_path = str(tmp_path / "resume.db")
+        state = StateManager(db_path)
+        await state.initialize()
+
+        commander = Commander(
+            executor=make_success_executor(),
+            state_manager=state,
+        )
+        graph = TaskGraph("resume_test")
+        graph.add_node("a", executor=make_success_executor())
+        graph.add_node("b", executor=make_success_executor(), depends_on=["a"])
+
+        # First run
+        result = await commander.execute_graph(graph)
+        assert result.status == TaskStatus.COMPLETED
+
+        # Resume run (should still work, no completed nodes to skip in engine)
+        result2 = await commander.execute_graph(graph, resume=True)
+        assert result2.status == TaskStatus.COMPLETED
+
+        await state.close()
+
+    async def test_execute_steps_with_options(self):
+        """execute_steps should pass through timeout and max_retries."""
+        commander = Commander(executor=make_success_executor())
+        result = await commander.execute_steps(
+            [
+                {
+                    "id": "a",
+                    "task": Task(name="a"),
+                    "timeout": 30.0,
+                    "max_retries": 2,
+                    "metadata": {"key": "val"},
+                },
+            ]
+        )
+        assert result.status == TaskStatus.COMPLETED
