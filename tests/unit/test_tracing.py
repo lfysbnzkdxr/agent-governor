@@ -44,6 +44,34 @@ class TestTracingManager:
             mgr = TracingManager()
             assert mgr.get_tracer() is None
 
+    def test_init_with_otlp_endpoint(self):
+        """TracingManager should create BatchSpanProcessor with OTLP endpoint."""
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(tracing_mod, "OTLPSpanExporter", create=True) as mock_exporter,
+            patch.object(tracing_mod, "BatchSpanProcessor", create=True) as mock_processor,
+            patch.object(tracing_mod, "TracerProvider", create=True) as mock_provider_cls,
+            patch.object(tracing_mod, "Resource", create=True),
+        ):
+            mock_provider = MagicMock()
+            mock_provider_cls.return_value = mock_provider
+            mgr = TracingManager(otlp_endpoint="http://localhost:4317")
+            mock_exporter.assert_called_once_with(endpoint="http://localhost:4317")
+            mock_processor.assert_called_once()
+            mock_provider.add_span_processor.assert_called_once()
+            assert mgr._initialized is True
+
+    def test_shutdown_with_provider(self):
+        """shutdown should call provider.shutdown when initialized."""
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(TracingManager, "_init"),
+        ):
+            mgr = TracingManager()
+            mgr._provider = MagicMock()
+            mgr.shutdown()
+            mgr._provider.shutdown.assert_called_once()
+
 
 @pytest.mark.asyncio
 class TestTracedDecorator:
@@ -190,6 +218,67 @@ class TestTracedExecutor:
 
         mock_span.set_attribute.assert_any_call("agent_governor.status", "error")
         mock_span.record_exception.assert_called_once()
+
+    async def test_with_tracing_manager(self):
+        """TracedExecutor should use tracing manager's tracer when provided."""
+        mock_inner = MagicMock()
+        mock_inner.execute = AsyncMock(return_value="result")
+        mock_span = MagicMock()
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+        mock_tracing = MagicMock()
+        mock_tracing.get_tracer.return_value = mock_tracer
+
+        task = MagicMock()
+        task.name = "traced_task"
+        task.model = "gpt-4o"
+
+        executor = TracedExecutor(inner=mock_inner, tracing=mock_tracing)
+        with patch.object(tracing_mod, "OTEL_AVAILABLE", True):
+            result = await executor.execute(task)
+
+        assert result == "result"
+        mock_tracing.get_tracer.assert_called_once()
+        mock_span.set_attribute.assert_any_call("agent_governor.task.name", "traced_task")
+
+    async def test_tracing_manager_returns_none_tracer(self):
+        """TracedExecutor should fall back to inner when tracer is None."""
+        mock_inner = MagicMock()
+        mock_inner.execute = AsyncMock(return_value="result")
+
+        mock_tracing = MagicMock()
+        mock_tracing.get_tracer.return_value = None
+
+        executor = TracedExecutor(inner=mock_inner, tracing=mock_tracing)
+        with patch.object(tracing_mod, "OTEL_AVAILABLE", True):
+            result = await executor.execute(MagicMock())
+
+        assert result == "result"
+        mock_inner.execute.assert_awaited_once()
+
+    async def test_task_without_model_attribute(self):
+        """TracedExecutor should handle task without model attribute."""
+        mock_inner = MagicMock()
+        mock_inner.execute = AsyncMock(return_value="result")
+        mock_span = MagicMock()
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+        task = MagicMock(spec=["name"])  # no model attribute
+        task.name = "no_model_task"
+
+        executor = TracedExecutor(inner=mock_inner)
+        mock_trace = MagicMock()
+        mock_trace.get_tracer.return_value = mock_tracer
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(tracing_mod, "trace", mock_trace),
+        ):
+            result = await executor.execute(task)
+
+        assert result == "result"
+        mock_span.set_attribute.assert_any_call("agent_governor.task.name", "no_model_task")
 
 
 class TestOTELAvailability:

@@ -73,6 +73,104 @@ class TestMetricsCollector:
                 mc.record_call("gpt-4", "success")  # No error
                 mc.record_error("gpt-4", "timeout")  # No error
 
+    def test_record_error_creates_counter(self):
+        """record_error should use a Counter instrument."""
+        mock_counter = MagicMock()
+        mock_meter = MagicMock()
+        mock_meter.create_counter.return_value = mock_counter
+
+        with (
+            patch("agent_governor.observability.metrics.OTEL_METRICS_AVAILABLE", True),
+            patch.object(MetricsCollector, "_init"),
+        ):
+            mc = MetricsCollector()
+            mc._meter = mock_meter
+            mc.record_error("gpt-4", "timeout")
+
+        mock_counter.add.assert_called_once_with(1, {"model": "gpt-4", "error_type": "timeout"})
+
+    def test_record_budget_exceeded_creates_counter(self):
+        """record_budget_exceeded should use a Counter instrument."""
+        mock_counter = MagicMock()
+        mock_meter = MagicMock()
+        mock_meter.create_counter.return_value = mock_counter
+
+        with (
+            patch("agent_governor.observability.metrics.OTEL_METRICS_AVAILABLE", True),
+            patch.object(MetricsCollector, "_init"),
+        ):
+            mc = MetricsCollector()
+            mc._meter = mock_meter
+            mc.record_budget_exceeded("gpt-4")
+
+        mock_counter.add.assert_called_once_with(1, {"model": "gpt-4"})
+
+    def test_record_tokens_creates_histogram(self):
+        """record_tokens should use a Histogram instrument."""
+        mock_histogram = MagicMock()
+        mock_meter = MagicMock()
+        mock_meter.create_histogram.return_value = mock_histogram
+
+        with (
+            patch("agent_governor.observability.metrics.OTEL_METRICS_AVAILABLE", True),
+            patch.object(MetricsCollector, "_init"),
+        ):
+            mc = MetricsCollector()
+            mc._meter = mock_meter
+            mc.record_tokens("gpt-4", 500)
+
+        mock_histogram.record.assert_called_once_with(500, {"model": "gpt-4"})
+
+    def test_instrument_caching(self):
+        """Second call to record same metric should reuse instrument."""
+        mock_counter = MagicMock()
+        mock_meter = MagicMock()
+        mock_meter.create_counter.return_value = mock_counter
+
+        with (
+            patch("agent_governor.observability.metrics.OTEL_METRICS_AVAILABLE", True),
+            patch.object(MetricsCollector, "_init"),
+        ):
+            mc = MetricsCollector()
+            mc._meter = mock_meter
+            mc.record_call("gpt-4", "success")
+            mc.record_call("gpt-4", "error")
+
+        # create_counter should be called only once (cached)
+        assert mock_meter.create_counter.call_count == 1
+        assert mock_counter.add.call_count == 2
+
+    def test_init_with_otlp_endpoint(self):
+        """MetricsCollector should create PeriodicExportingMetricReader with endpoint."""
+        with (
+            patch("agent_governor.observability.metrics.OTEL_METRICS_AVAILABLE", True),
+            patch(
+                "agent_governor.observability.metrics.OTLPMetricExporter", create=True
+            ) as mock_exporter,
+            patch(
+                "agent_governor.observability.metrics.PeriodicExportingMetricReader", create=True
+            ) as mock_reader,
+            patch(
+                "agent_governor.observability.metrics.MeterProvider", create=True
+            ) as mock_provider,
+        ):
+            mc = MetricsCollector(otlp_endpoint="http://localhost:4317")
+            mock_exporter.assert_called_once_with(endpoint="http://localhost:4317")
+            mock_reader.assert_called_once()
+            mock_provider.assert_called_once()
+            assert mc._initialized is True
+
+    def test_shutdown_with_provider(self):
+        """shutdown should call provider.shutdown when initialized."""
+        with (
+            patch("agent_governor.observability.metrics.OTEL_METRICS_AVAILABLE", True),
+            patch.object(MetricsCollector, "_init"),
+        ):
+            mc = MetricsCollector()
+            mc._provider = MagicMock()
+            mc.shutdown()
+            mc._provider.shutdown.assert_called_once()
+
 
 class TestOTELMetricsAvailability:
     """Tests for OTEL_METRICS_AVAILABLE flag."""

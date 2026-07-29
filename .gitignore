@@ -42,5 +42,8 @@ Thumbs.db
 # Ruff cache
 .ruff_cache/
 
+# Qoder run continuation
+.omo/
+
 # Log files
 *.log
