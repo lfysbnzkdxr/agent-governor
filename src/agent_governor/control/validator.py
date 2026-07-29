@@ -7,12 +7,14 @@ on first failure (unless configured otherwise).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 from agent_governor.models import Task, TaskResult, ValidationResult
-from agent_governor.protocols import QualityGate
+
+if TYPE_CHECKING:
+    from agent_governor.protocols import QualityGate
 
 logger = structlog.get_logger(__name__)
 
@@ -93,15 +95,14 @@ class ValidationPipeline:
                 task_id=task.id,
             )
 
-            if not gate_result.passed:
-                if self._short_circuit:
-                    return ValidationResult(
-                        passed=False,
-                        gate_name=gate.name,
-                        score=gate_result.score,
-                        reason=gate_result.reason,
-                        details=all_details,
-                    )
+            if not gate_result.passed and self._short_circuit:
+                return ValidationResult(
+                    passed=False,
+                    gate_name=gate.name,
+                    score=gate_result.score,
+                    reason=gate_result.reason,
+                    details=all_details,
+                )
 
         # Determine overall pass/fail
         all_passed = all(d["passed"] for d in all_details.values())
@@ -115,9 +116,7 @@ class ValidationPipeline:
             )
         else:
             # Find first failing gate for the summary
-            first_fail = next(
-                (name for name, d in all_details.items() if not d["passed"]), ""
-            )
+            first_fail = next((name for name, d in all_details.items() if not d["passed"]), "")
             return ValidationResult(
                 passed=False,
                 gate_name=first_fail,

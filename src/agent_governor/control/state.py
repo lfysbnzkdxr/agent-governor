@@ -16,7 +16,7 @@ from typing import Any
 
 import structlog
 
-from agent_governor.models import DagExecutionResult, DagNodeResult, DagNodeStatus
+from agent_governor.models import DagNodeResult, DagNodeStatus
 
 logger = structlog.get_logger(__name__)
 
@@ -71,6 +71,7 @@ class StateManager:
 
     async def initialize(self) -> None:
         """Initialize the database connection and schema."""
+
         def _init() -> sqlite3.Connection:
             if self._db_path != ":memory:":
                 Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +128,7 @@ class StateManager:
                 "SELECT metadata FROM graph_state WHERE graph_id = ?", (key,)
             ).fetchone()
             if row:
-                return json.loads(row[0])
+                return json.loads(row[0])  # type: ignore[no-any-return]
             return None
 
         return await asyncio.to_thread(_load)
@@ -215,9 +216,7 @@ class StateManager:
 
         return await asyncio.to_thread(_load)
 
-    async def load_node_checkpoints(
-        self, graph_id: str
-    ) -> dict[str, DagNodeResult]:
+    async def load_node_checkpoints(self, graph_id: str) -> dict[str, DagNodeResult]:
         """Load all node checkpoints for a graph.
 
         Returns:

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_governor.models import Task, TaskResult, TaskStatus
+from agent_governor.models import Task, TaskStatus
 
 
 @pytest.mark.asyncio
@@ -43,8 +43,11 @@ class TestHTTPExecutor:
         assert result.status == TaskStatus.COMPLETED
         assert result.content == '{"result": "ok"}'
         mock_client.request.assert_awaited_once_with(
-            method="GET", url="/v1/data",
-            json=None, params=None, headers=None,
+            method="GET",
+            url="/v1/data",
+            json=None,
+            params=None,
+            headers=None,
         )
 
     async def test_execute_post_with_body(self):
@@ -73,8 +76,11 @@ class TestHTTPExecutor:
         assert result.status == TaskStatus.COMPLETED
         assert result.content == '{"id": 42}'
         mock_client.request.assert_awaited_once_with(
-            method="POST", url="/v1/items",
-            json={"name": "test"}, params=None, headers=None,
+            method="POST",
+            url="/v1/items",
+            json={"name": "test"},
+            params=None,
+            headers=None,
         )
 
     async def test_execute_handles_client_error(self):

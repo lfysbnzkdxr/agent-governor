@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+from contextlib import suppress
 
 import pytest
 
@@ -48,10 +49,8 @@ class TestKeyedSemaphore:
         assert acquired
         await ks._release("x")
         task.cancel()
-        try:
+        with suppress(asyncio.CancelledError):
             await task
-        except asyncio.CancelledError:
-            pass
 
     async def test_custom_key_limits(self):
         ks = KeyedSemaphore(default_limit=10, key_limits={"gpt-4o": 2})

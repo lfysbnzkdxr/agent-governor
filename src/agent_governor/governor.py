@@ -213,7 +213,9 @@ class Governor:
                     span.set_attribute("agent_governor.task.name", task.name or "")
                     span.set_attribute("agent_governor.tenant_id", task.tenant_id)
                     result = await self._dispatcher.dispatch(task)
-                    span.set_attribute("agent_governor.status", "success" if not result.error else "error")
+                    span.set_attribute(
+                        "agent_governor.status", "success" if not result.error else "error"
+                    )
                     return result
         return await self._dispatcher.dispatch(task)
 

@@ -9,24 +9,22 @@ The Commander provides the highest-level API for multi-step agent workflows:
 
 from __future__ import annotations
 
-import json
 import uuid
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 from agent_governor.control.dag import DagExecutionEngine, NodeExecutor, TaskGraph
-from agent_governor.control.state import StateManager
-from agent_governor.control.validator import ValidationPipeline
 from agent_governor.models import (
     DagExecutionResult,
-    DagNodeResult,
     DagNodeStatus,
     Task,
-    TaskResult,
-    TaskStatus,
 )
-from agent_governor.protocols import QualityGate
+
+if TYPE_CHECKING:
+    from agent_governor.control.state import StateManager
+    from agent_governor.control.validator import ValidationPipeline
 
 logger = structlog.get_logger(__name__)
 
@@ -142,9 +140,7 @@ class Commander:
 
         # Save initial state
         if self._state_manager:
-            await self._state_manager.save_graph_state(
-                graph.id, "running", {"name": graph.name}
-            )
+            await self._state_manager.save_graph_state(graph.id, "running", {"name": graph.name})
 
         # Execute
         result = await self._engine.execute(graph, context=context)
@@ -225,9 +221,14 @@ class Commander:
         if decompose_fn is None:
             # No decomposition - single node execution
             return await self.execute_steps(
-                [{"id": "main", "task": Task(name="main", messages=[
-                    {"role": "user", "content": task_description}
-                ])}],
+                [
+                    {
+                        "id": "main",
+                        "task": Task(
+                            name="main", messages=[{"role": "user", "content": task_description}]
+                        ),
+                    }
+                ],
                 graph_name="single_task",
                 context=context,
             )
@@ -284,10 +285,7 @@ class Commander:
 
         # Load previous checkpoints
         checkpoints = await self._state_manager.load_node_checkpoints(graph.id)
-        completed = {
-            nid for nid, nr in checkpoints.items()
-            if nr.status == DagNodeStatus.COMPLETED
-        }
+        completed = {nid for nid, nr in checkpoints.items() if nr.status == DagNodeStatus.COMPLETED}
 
         if not completed:
             # Nothing to recover, execute fresh
@@ -304,7 +302,7 @@ class Commander:
         # but keeping their results available via context
         ctx = context or {}
         ctx["_completed_results"] = {
-            nid: checkpoints[nid].result.model_dump() if checkpoints[nid].result else None
+            nid: checkpoints[nid].result.model_dump() if checkpoints[nid].result else None  # type: ignore[union-attr]
             for nid in completed
         }
 

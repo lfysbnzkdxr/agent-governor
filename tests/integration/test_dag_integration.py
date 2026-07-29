@@ -1,8 +1,6 @@
 """Integration tests: DAG + quality gates + checkpoint recovery."""
 
-import asyncio
-
-import pytest
+from pydantic import BaseModel
 
 from agent_governor.control.commander import Commander
 from agent_governor.control.dag import DagExecutionEngine, TaskGraph
@@ -18,8 +16,6 @@ from agent_governor.models import (
     TokenUsage,
     ValidationResult,
 )
-from pydantic import BaseModel
-
 
 # === Test Helpers ===
 
@@ -40,12 +36,14 @@ def make_success_executor(content: str = '{"summary": "ok", "confidence": 0.95}'
             cost_usd=0.005,
             latency_ms=100.0,
         )
+
     return executor
 
 
 def make_fail_executor():
     async def executor(task: Task) -> TaskResult:
         raise RuntimeError("simulated failure")
+
     return executor
 
 
@@ -106,9 +104,7 @@ class TestDagWithQualityGates:
             depends_on=["analyze"],
         )
 
-        engine = DagExecutionEngine(
-            default_executor=make_success_executor(), fail_fast=True
-        )
+        engine = DagExecutionEngine(default_executor=make_success_executor(), fail_fast=True)
         result = await engine.execute(graph)
 
         assert result.status == TaskStatus.FAILED
@@ -118,10 +114,12 @@ class TestDagWithQualityGates:
 
     async def test_dag_with_validation_pipeline(self):
         """Node with multi-gate validation pipeline."""
-        pipeline = ValidationPipeline([
-            SchemaGate(AnalysisOutput),
-            BudgetGate(max_cost_usd=1.0),
-        ])
+        pipeline = ValidationPipeline(
+            [
+                SchemaGate(AnalysisOutput),
+                BudgetGate(max_cost_usd=1.0),
+            ]
+        )
 
         # Create a gate adapter that runs the pipeline
         class PipelineGate:
@@ -181,7 +179,9 @@ class TestDagWithCheckpointRecovery:
         graph2 = TaskGraph("recovery_test")
         graph2._id = graph.id  # Same ID for recovery
         graph2.add_node("step1", executor=make_success_executor("step1_done"))
-        graph2.add_node("step2", executor=make_success_executor("step2_fixed"), depends_on=["step1"])
+        graph2.add_node(
+            "step2", executor=make_success_executor("step2_fixed"), depends_on=["step1"]
+        )
 
         result2 = await engine.execute(graph2)
         assert result2.status == TaskStatus.COMPLETED
@@ -194,11 +194,13 @@ class TestCommanderIntegration:
 
     async def test_execute_steps(self):
         commander = Commander(executor=make_success_executor())
-        result = await commander.execute_steps([
-            {"id": "a", "task": Task(name="a")},
-            {"id": "b", "task": Task(name="b"), "depends_on": ["a"]},
-            {"id": "c", "task": Task(name="c"), "depends_on": ["a"]},
-        ])
+        result = await commander.execute_steps(
+            [
+                {"id": "a", "task": Task(name="a")},
+                {"id": "b", "task": Task(name="b"), "depends_on": ["a"]},
+                {"id": "c", "task": Task(name="c"), "depends_on": ["a"]},
+            ]
+        )
 
         assert result.status == TaskStatus.COMPLETED
         assert len(result.node_results) == 3
@@ -240,6 +242,7 @@ class TestCommanderIntegration:
 
     async def test_decompose_and_execute_with_fn(self):
         """With custom decompose function."""
+
         async def mock_decompose(description: str):
             return [
                 {"id": "research", "description": "Search for info", "depends_on": []},

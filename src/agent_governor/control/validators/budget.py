@@ -53,9 +53,7 @@ class BudgetGate:
         # Token check
         total_tokens = result.usage.total_tokens
         if self._max_tokens > 0 and total_tokens > self._max_tokens:
-            violations.append(
-                f"tokens {total_tokens} exceeds limit {self._max_tokens}"
-            )
+            violations.append(f"tokens {total_tokens} exceeds limit {self._max_tokens}")
             score *= self._max_tokens / total_tokens if total_tokens > 0 else 0
 
         # Latency check

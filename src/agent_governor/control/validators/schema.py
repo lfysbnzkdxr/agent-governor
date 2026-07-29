@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from pydantic import BaseModel, ValidationError as PydanticValidationError
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 from agent_governor.models import Task, TaskResult, ValidationResult
 

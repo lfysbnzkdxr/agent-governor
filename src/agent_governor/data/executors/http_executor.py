@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from typing import Any
 
 try:
     import httpx
@@ -37,9 +36,7 @@ class HTTPExecutor:
         max_connections: int = 100,
     ) -> None:
         if not HTTPX_AVAILABLE:
-            raise ImportError(
-                "httpx package is required: pip install agent-governor[http]"
-            )
+            raise ImportError("httpx package is required: pip install agent-governor[http]")
         self._base_url = base_url.rstrip("/")
         self._headers = headers or {}
         self._timeout = timeout

@@ -7,23 +7,24 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import litellm
 import structlog
 
-from agent_governor.config import GovernorConfig
 from agent_governor.exceptions import (
     BudgetExceededError,
     ExecutionTimeoutError,
-    GovernorError,
     ModelNotAllowedError,
 )
 from agent_governor.models import CallRecord, Task, TaskResult, TaskStatus, TokenUsage
 from agent_governor.observability.audit import AuditLogger
 from agent_governor.observability.cost import CostTracker
-from agent_governor.observability.metrics import MetricsCollector
-from agent_governor.observability.tracing import TracingManager
+
+if TYPE_CHECKING:
+    from agent_governor.config import GovernorConfig
+    from agent_governor.observability.metrics import MetricsCollector
+    from agent_governor.observability.tracing import TracingManager
 
 logger = structlog.get_logger(__name__)
 
@@ -168,7 +169,7 @@ class Dispatcher:
                 ),
                 timeout=timeout,
             )
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             raise ExecutionTimeoutError(task.id, timeout) from e
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000
@@ -252,9 +253,7 @@ class Dispatcher:
             "total_cost_usd": self._cost_tracker.total_cost,
             "total_calls": self._cost_tracker.total_calls,
             "budget_usd": self._config.budget_usd,
-            "budget_remaining": max(
-                0, self._config.budget_usd - self._cost_tracker.total_cost
-            )
+            "budget_remaining": max(0, self._config.budget_usd - self._cost_tracker.total_cost)
             if self._config.budget_usd > 0
             else float("inf"),
         }

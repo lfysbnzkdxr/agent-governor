@@ -13,19 +13,22 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import deque
-from enum import Enum
-from typing import Any, Callable, Coroutine, TypeVar
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import structlog
 
 from agent_governor.exceptions import CircuitOpenError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
 
 logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 
 
-class CircuitState(str, Enum):
+class CircuitState(StrEnum):
     """Circuit breaker states."""
 
     CLOSED = "closed"
@@ -96,9 +99,11 @@ class CircuitBreaker:
     @property
     def state(self) -> CircuitState:
         """Current circuit state (may transition OPEN->HALF_OPEN on read)."""
-        if self._state == CircuitState.OPEN:
-            if time.monotonic() - self._opened_at >= self._recovery_timeout:
-                return CircuitState.HALF_OPEN
+        if (
+            self._state == CircuitState.OPEN
+            and time.monotonic() - self._opened_at >= self._recovery_timeout
+        ):
+            return CircuitState.HALF_OPEN
         return self._state
 
     @property
@@ -221,9 +226,11 @@ class CircuitBreaker:
 
     def _get_effective_state(self) -> CircuitState:
         """Get state, handling OPEN -> HALF_OPEN time-based transition."""
-        if self._state == CircuitState.OPEN:
-            if time.monotonic() - self._opened_at >= self._recovery_timeout:
-                self._transition_to(CircuitState.HALF_OPEN)
+        if (
+            self._state == CircuitState.OPEN
+            and time.monotonic() - self._opened_at >= self._recovery_timeout
+        ):
+            self._transition_to(CircuitState.HALF_OPEN)
         return self._state
 
     def _transition_to(self, new_state: CircuitState) -> None:

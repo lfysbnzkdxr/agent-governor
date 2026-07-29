@@ -10,7 +10,12 @@ __all__ = [
 
 try:
     from agent_governor.observability.metrics import OTEL_METRICS_AVAILABLE, MetricsCollector
-    from agent_governor.observability.tracing import OTEL_AVAILABLE, TracedExecutor, TracingManager, traced
+    from agent_governor.observability.tracing import (
+        OTEL_AVAILABLE,
+        TracedExecutor,
+        TracingManager,
+        traced,
+    )
 
     __all__ += [
         "MetricsCollector",

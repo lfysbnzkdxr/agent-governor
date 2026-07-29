@@ -5,11 +5,12 @@ from __future__ import annotations
 import sys
 import threading
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
-from agent_governor.models import CallRecord
+if TYPE_CHECKING:
+    from agent_governor.models import CallRecord
 
 
 class AuditLogger:
@@ -51,7 +52,7 @@ class AuditLogger:
             # File output - JSON lines
             Path(self._log_file).parent.mkdir(parents=True, exist_ok=True)
             processors.append(structlog.processors.JSONRenderer())
-            self._file_handle = open(self._log_file, "a", encoding="utf-8")
+            self._file_handle = open(self._log_file, "a", encoding="utf-8")  # noqa: SIM115
             self._writer = self._file_handle
         else:
             # Console output - colored for dev

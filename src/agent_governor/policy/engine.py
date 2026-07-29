@@ -164,7 +164,7 @@ class PolicyEngine:
         if rule_tenant and rule_tenant != ctx_tenant:
             return True  # Rule doesn't apply to this tenant
         current_cost = context.get("current_cost", 0.0)
-        return current_cost < max_usd
+        return bool(current_cost < max_usd)
 
     def _eval_rate_limit(self, rule: PolicyRule, context: dict[str, Any]) -> bool:
         """Check rate limit (context should provide current_rps)."""
@@ -176,7 +176,7 @@ class PolicyEngine:
         if rule_tenant and rule_tenant != ctx_tenant:
             return True
         current_rps = context.get("current_rps", 0.0)
-        return current_rps <= max_rps
+        return bool(current_rps <= max_rps)
 
     def _eval_model_whitelist(self, rule: PolicyRule, context: dict[str, Any]) -> bool:
         """Check if model is in the whitelist."""
@@ -196,4 +196,4 @@ class PolicyEngine:
         if max_cost <= 0:
             return True
         call_cost = context.get("call_cost", 0.0)
-        return call_cost <= max_cost
+        return bool(call_cost <= max_cost)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agent_governor.observability.cost import CostTracker, DEFAULT_PRICING
+from agent_governor.observability.cost import CostTracker
 
 
 class TestCostTracker:

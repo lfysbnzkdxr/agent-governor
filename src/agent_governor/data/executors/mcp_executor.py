@@ -10,7 +10,7 @@ import time
 from typing import Any
 
 try:
-    from mcp import ClientSession
+    import mcp  # noqa: F401
 
     MCP_AVAILABLE = True
 except ImportError:
@@ -34,9 +34,7 @@ class MCPExecutor:
 
     def __init__(self, session: Any, *, default_timeout: float = 30.0) -> None:
         if not MCP_AVAILABLE:
-            raise ImportError(
-                "mcp package is required: pip install agent-governor[mcp]"
-            )
+            raise ImportError("mcp package is required: pip install agent-governor[mcp]")
         self._session = session
         self._timeout = default_timeout
 

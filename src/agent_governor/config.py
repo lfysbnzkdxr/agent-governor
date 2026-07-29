@@ -22,15 +22,21 @@ class GovernorConfig(BaseModel):
     """
 
     # Budget control
-    budget_usd: float = Field(default=0.0, ge=0, description="Total budget limit in USD. 0 = unlimited")
+    budget_usd: float = Field(
+        default=0.0, ge=0, description="Total budget limit in USD. 0 = unlimited"
+    )
     budget_warning_ratio: float = Field(
         default=0.8, ge=0, le=1.0, description="Ratio at which budget warning is triggered"
     )
 
     # Model routing
-    models: list[str] = Field(default_factory=list, description="Allowed model whitelist. Empty = all allowed")
+    models: list[str] = Field(
+        default_factory=list, description="Allowed model whitelist. Empty = all allowed"
+    )
     fallback_model: str = Field(default="", description="Fallback model when primary fails")
-    default_model: str = Field(default="gpt-4o", description="Default model if not specified in call")
+    default_model: str = Field(
+        default="gpt-4o", description="Default model if not specified in call"
+    )
 
     # Concurrency
     max_concurrency: int = Field(default=10, ge=1, description="Max concurrent LLM calls")
@@ -48,7 +54,9 @@ class GovernorConfig(BaseModel):
 
     # Tracing (Phase 3)
     tracing_enabled: bool = Field(default=False, description="Enable OTel distributed tracing")
-    otlp_endpoint: str = Field(default="", description="OTLP collector endpoint URL (e.g. http://localhost:4317)")
+    otlp_endpoint: str = Field(
+        default="", description="OTLP collector endpoint URL (e.g. http://localhost:4317)"
+    )
 
     # Multi-tenant (Phase 4)
     tenant_policies: dict[str, TenantPolicy] = Field(

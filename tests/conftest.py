@@ -42,7 +42,6 @@ def cost_tracker() -> CostTracker:
 
 
 @pytest.fixture
-
 def gov_audit_config() -> GovernorConfig:
     """Configuration with audit enabled for testing."""
     return GovernorConfig(
@@ -54,14 +53,12 @@ def gov_audit_config() -> GovernorConfig:
 
 
 @pytest.fixture
-
 def governor_audit(gov_audit_config: GovernorConfig) -> Governor:
     """Governor instance with audit enabled."""
     return Governor(config=gov_audit_config)
 
 
 @pytest.fixture
-
 def governor(config: GovernorConfig) -> Governor:
     """Governor instance with test config."""
     return Governor(config=config)

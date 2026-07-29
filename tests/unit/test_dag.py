@@ -17,7 +17,6 @@ from agent_governor.models import (
     ValidationResult,
 )
 
-
 # === Helpers ===
 
 
@@ -142,10 +141,7 @@ class TestDagExecutionEngine:
         result = await engine.execute(g)
 
         assert result.status == TaskStatus.COMPLETED
-        assert all(
-            nr.status == DagNodeStatus.COMPLETED
-            for nr in result.node_results.values()
-        )
+        assert all(nr.status == DagNodeStatus.COMPLETED for nr in result.node_results.values())
 
     async def test_parallel_execution(self):
         call_order = []
@@ -172,9 +168,7 @@ class TestDagExecutionEngine:
         g.add_node("a", executor=make_executor(fail=True))
         g.add_node("b", depends_on=["a"])
 
-        engine = DagExecutionEngine(
-            default_executor=make_executor(), fail_fast=True
-        )
+        engine = DagExecutionEngine(default_executor=make_executor(), fail_fast=True)
         result = await engine.execute(g)
 
         assert result.status == TaskStatus.FAILED

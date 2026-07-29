@@ -82,16 +82,12 @@ class BillingReport:
 
         for tenant_id, info in data["tenants"].items():
             budget_str = f"${info['budget_usd']:.2f}" if info["budget_usd"] > 0 else "unlimited"
-            remain_str = (
-                f"${info['budget_remaining']:.2f}" if info["budget_usd"] > 0 else "∞"
-            )
+            remain_str = f"${info['budget_remaining']:.2f}" if info["budget_usd"] > 0 else "∞"
             lines.append(
                 f"{tenant_id:<20} ${info['cost_usd']:>8.4f} {info['calls']:>8} "
                 f"{budget_str:>10} {remain_str:>10}"
             )
 
         lines.append("-" * 60)
-        lines.append(
-            f"{'TOTAL':<20} ${data['total_cost_usd']:>8.4f} {data['total_calls']:>8}"
-        )
+        lines.append(f"{'TOTAL':<20} ${data['total_cost_usd']:>8.4f} {data['total_calls']:>8}")
         return "\n".join(lines)

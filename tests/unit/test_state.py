@@ -78,11 +78,13 @@ class TestStateManagerDagCheckpoint:
 
     async def test_get_completed_nodes(self, state_mgr: StateManager):
         await state_mgr.save_node(
-            "g1", "done_node",
+            "g1",
+            "done_node",
             DagNodeResult(node_id="done_node", status=DagNodeStatus.COMPLETED),
         )
         await state_mgr.save_node(
-            "g1", "failed_node",
+            "g1",
+            "failed_node",
             DagNodeResult(node_id="failed_node", status=DagNodeStatus.FAILED),
         )
 

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import time
 import uuid
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class TaskStatus(str, Enum):
+class TaskStatus(StrEnum):
     """Task execution status."""
 
     PENDING = "pending"
@@ -58,9 +58,7 @@ class TokenUsage(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         if self.total_tokens == 0:
-            object.__setattr__(
-                self, "total_tokens", self.prompt_tokens + self.completion_tokens
-            )
+            object.__setattr__(self, "total_tokens", self.prompt_tokens + self.completion_tokens)
 
 
 class CallRecord(BaseModel):
@@ -91,7 +89,7 @@ class ValidationResult(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
-class DagNodeStatus(str, Enum):
+class DagNodeStatus(StrEnum):
     """Status of a DAG node during execution."""
 
     PENDING = "pending"

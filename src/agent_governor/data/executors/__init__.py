@@ -17,15 +17,17 @@ warnings.warn(
 __all__: list[str] = []
 
 try:
-    from agent_governor.data.executors.mcp_executor import MCPExecutor
+    from agent_governor.data.executors.http_executor import (
+        HTTPExecutor as _HTTPExecutor,  # noqa: F401
+    )
 
-    __all__.append("MCPExecutor")
+    __all__.append("HTTPExecutor")
 except ImportError:
     pass
 
 try:
-    from agent_governor.data.executors.http_executor import HTTPExecutor
+    from agent_governor.data.executors.mcp_executor import MCPExecutor as _MCPExecutor  # noqa: F401
 
-    __all__.append("HTTPExecutor")
+    __all__.append("MCPExecutor")
 except ImportError:
     pass

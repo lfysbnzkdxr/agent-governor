@@ -102,9 +102,7 @@ class TestGovernor:
         assert result.usage.completion_tokens == 20
 
     @pytest.mark.asyncio
-    async def test_execute_task_propagates_exceptions(
-        self, config: GovernorConfig
-    ) -> None:
+    async def test_execute_task_propagates_exceptions(self, config: GovernorConfig) -> None:
         """Test that execute_task propagates Dispatcher exceptions."""
         config.models = []  # allow all models
         gov = Governor(config=config)

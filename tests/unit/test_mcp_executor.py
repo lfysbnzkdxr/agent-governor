@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_governor.models import Task, TaskResult, TaskStatus
+from agent_governor.models import Task, TaskStatus
 
 
 @pytest.mark.asyncio
@@ -22,7 +22,7 @@ class TestMCPExecutor:
                 MCPExecutor(session=MagicMock())
 
     async def _make_executor(self, session):
-        from agent_governor.data.executors.mcp_executor import MCPExecutor, MCP_AVAILABLE
+        from agent_governor.data.executors.mcp_executor import MCP_AVAILABLE, MCPExecutor
 
         if not MCP_AVAILABLE:
             with patch("agent_governor.data.executors.mcp_executor.MCP_AVAILABLE", True):
@@ -36,8 +36,6 @@ class TestMCPExecutor:
         mock_result.content = [MagicMock(text="search result")]
         mock_session.call_tool.return_value = mock_result
 
-        from agent_governor.data.executors.mcp_executor import MCPExecutor
-
         executor = await self._make_executor(mock_session)
         task = Task(
             name="search_tool",
@@ -49,15 +47,14 @@ class TestMCPExecutor:
         assert result.status == TaskStatus.COMPLETED
         assert "search result" in result.content
         mock_session.call_tool.assert_awaited_once_with(
-            "search", arguments={"q": "test"},
+            "search",
+            arguments={"q": "test"},
         )
 
     async def test_execute_handles_error(self):
         """MCPExecutor.execute should handle tool errors."""
         mock_session = AsyncMock()
         mock_session.call_tool.side_effect = ValueError("Tool execution failed")
-
-        from agent_governor.data.executors.mcp_executor import MCPExecutor
 
         executor = await self._make_executor(mock_session)
         task = Task(
@@ -77,8 +74,6 @@ class TestMCPExecutor:
         mock_result.content = [MagicMock(text="ok")]
         mock_session.call_tool.return_value = mock_result
 
-        from agent_governor.data.executors.mcp_executor import MCPExecutor
-
         executor = await self._make_executor(mock_session)
         task = Task(name="default_tool")
 
@@ -86,5 +81,6 @@ class TestMCPExecutor:
 
         assert result.status == TaskStatus.COMPLETED
         mock_session.call_tool.assert_awaited_once_with(
-            "default_tool", arguments={},
+            "default_tool",
+            arguments={},
         )

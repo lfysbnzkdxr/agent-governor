@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 try:
     from opentelemetry import trace
@@ -15,10 +16,8 @@ try:
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
-    trace = None  # type: ignore[assignment]
+    trace = None
 
-if TYPE_CHECKING:
-    from agent_governor.models import Task, TaskResult
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -109,9 +108,8 @@ def traced(
                 for k, v in attrs.items():
                     span.set_attribute(k, v)
                 result = await func(*args, **kwargs)
-                if result is not None:
-                    if hasattr(result, "status"):
-                        span.set_attribute("agent_governor.status", str(result.status))
+                if result is not None and hasattr(result, "status"):
+                    span.set_attribute("agent_governor.status", str(result.status))
                 return result
 
         return wrapper  # type: ignore[return-value]

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from agent_governor.cli.report import aggregate, format_table, load_records, parse_args
@@ -22,7 +20,9 @@ class TestParseArgs:
 
     def test_parse_with_options(self):
         """Should parse all options."""
-        args = parse_args(["--format", "json", "--group-by", "caller", "--limit", "50", "audit.log"])
+        args = parse_args(
+            ["--format", "json", "--group-by", "caller", "--limit", "50", "audit.log"]
+        )
         assert args.input == "audit.log"
         assert args.format == "json"
         assert args.group_by == "caller"
@@ -58,7 +58,7 @@ class TestLoadRecords:
     def test_load_with_limit(self, tmp_path):
         """Should respect the limit parameter."""
         f = tmp_path / "audit.log"
-        lines = '\n'.join([f'{{"model": "m{i}", "cost_usd": 0.01}}' for i in range(10)])
+        lines = "\n".join([f'{{"model": "m{i}", "cost_usd": 0.01}}' for i in range(10)])
         f.write_text(lines)
         records = load_records(str(f), limit=3)
         assert len(records) == 3
@@ -113,8 +113,12 @@ class TestFormatTable:
         data = {
             "groups": {
                 "gpt-4": {
-                    "calls": 2, "total_cost_usd": 0.03, "avg_cost_usd": 0.015,
-                    "total_tokens": 300, "avg_latency_ms": 400.0, "total_latency_ms": 800.0,
+                    "calls": 2,
+                    "total_cost_usd": 0.03,
+                    "avg_cost_usd": 0.015,
+                    "total_tokens": 300,
+                    "avg_latency_ms": 400.0,
+                    "total_latency_ms": 800.0,
                     "avg_tokens": 150.0,
                 },
             },

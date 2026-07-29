@@ -5,6 +5,8 @@ Convenience constructors for common policy patterns.
 
 from __future__ import annotations
 
+from typing import Any
+
 from agent_governor.policy.engine import PolicyRule
 
 
@@ -19,14 +21,14 @@ def budget_cap(
         action: "deny" to block, "warn" to log only.
         priority: Higher values evaluated first.
     """
-    params: dict = {"max_usd": max_usd}
+    params: dict[str, Any] = {"max_usd": max_usd}
     if tenant_id:
         params["tenant_id"] = tenant_id
     return PolicyRule(
         name=f"budget_cap_{tenant_id or 'global'}",
         type="budget",
         params=params,
-        action=action,  # type: ignore[arg-type]
+        action=action,
         priority=priority,
     )
 
@@ -42,14 +44,14 @@ def model_whitelist(
         action: "deny" to block, "warn" to log only.
         priority: Higher values evaluated first.
     """
-    params: dict = {"models": models}
+    params: dict[str, Any] = {"models": models}
     if tenant_id:
         params["tenant_id"] = tenant_id
     return PolicyRule(
         name=f"model_whitelist_{tenant_id or 'global'}",
         type="model_whitelist",
         params=params,
-        action=action,  # type: ignore[arg-type]
+        action=action,
         priority=priority,
     )
 
@@ -65,14 +67,14 @@ def rate_limit(
         action: "deny" to block, "warn" to log only.
         priority: Higher values evaluated first.
     """
-    params: dict = {"rps": rps}
+    params: dict[str, Any] = {"rps": rps}
     if tenant_id:
         params["tenant_id"] = tenant_id
     return PolicyRule(
         name=f"rate_limit_{tenant_id or 'global'}",
         type="rate_limit",
         params=params,
-        action=action,  # type: ignore[arg-type]
+        action=action,
         priority=priority,
     )
 
@@ -89,6 +91,6 @@ def max_cost_per_call(max_usd: float, *, action: str = "deny", priority: int = 0
         name="max_cost_per_call",
         type="max_cost_per_call",
         params={"max_usd": max_usd},
-        action=action,  # type: ignore[arg-type]
+        action=action,
         priority=priority,
     )

@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    from opentelemetry import metrics
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
@@ -60,7 +59,9 @@ class MetricsCollector:
         if name not in self._instruments:
             if self._meter:
                 self._instruments[name] = self._meter.create_counter(
-                    name, unit=unit, description=description,
+                    name,
+                    unit=unit,
+                    description=description,
                 )
             else:
                 return None
@@ -71,7 +72,9 @@ class MetricsCollector:
         if name not in self._instruments:
             if self._meter:
                 self._instruments[name] = self._meter.create_histogram(
-                    name, unit=unit, description=description,
+                    name,
+                    unit=unit,
+                    description=description,
                 )
             else:
                 return None

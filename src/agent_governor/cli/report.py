@@ -11,8 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import defaultdict
-from datetime import datetime
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -74,7 +73,7 @@ def load_records(path: str, limit: int = 0) -> list[dict[str, Any]]:
             try:
                 records.append(json.loads(line))
             except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON at line {i + 1}: {e}")
+                raise ValueError(f"Invalid JSON at line {i + 1}: {e}") from e
 
     return records
 
@@ -98,10 +97,8 @@ def aggregate(records: list[dict[str, Any]], group_by: str) -> dict[str, Any]:
         if group_by == "day":
             ts = rec.get("timestamp", "")
             if ts:
-                try:
+                with suppress(IndexError, TypeError):
                     key = ts[:10]  # YYYY-MM-DD
-                except (IndexError, TypeError):
-                    pass
 
         if key not in groups:
             groups[key] = {
@@ -152,7 +149,9 @@ def format_table(data: dict[str, Any]) -> str:
         return "No records found."
 
     # Header
-    lines.append(f"{'Group':<20} {'Calls':>8} {'Cost (USD)':>14} {'Avg Cost':>12} {'Tokens':>10} {'Avg Latency':>14}")
+    lines.append(
+        f"{'Group':<20} {'Calls':>8} {'Cost (USD)':>14} {'Avg Cost':>12} {'Tokens':>10} {'Avg Latency':>14}"
+    )
     lines.append("-" * 80)
 
     for key, g in groups.items():

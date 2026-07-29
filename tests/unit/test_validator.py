@@ -1,6 +1,5 @@
 """Tests for quality gate validation framework."""
 
-import pytest
 from pydantic import BaseModel
 
 from agent_governor.control.validator import ValidationPipeline
@@ -8,7 +7,6 @@ from agent_governor.control.validators.budget import BudgetGate
 from agent_governor.control.validators.llm_judge import LLMJudgeGate
 from agent_governor.control.validators.schema import SchemaGate
 from agent_governor.models import Task, TaskResult, TaskStatus, TokenUsage, ValidationResult
-
 
 # === Fixtures ===
 
@@ -78,9 +76,7 @@ class TestValidationPipeline:
         assert "always_pass" not in result.details
 
     async def test_no_short_circuit_runs_all(self):
-        pipeline = ValidationPipeline(
-            [AlwaysFailGate(), AlwaysPassGate()], short_circuit=False
-        )
+        pipeline = ValidationPipeline([AlwaysFailGate(), AlwaysPassGate()], short_circuit=False)
         result = await pipeline.run(make_task(), make_result())
         assert result.passed is False
         assert "always_pass" in result.details

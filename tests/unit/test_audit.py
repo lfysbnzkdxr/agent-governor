@@ -6,8 +6,6 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from agent_governor.models import CallRecord
 from agent_governor.observability.audit import AuditLogger
 
@@ -26,6 +24,7 @@ class TestAuditLogger:
         logger._lock = __import__("threading").Lock()  # ensure fresh lock for test
 
         import asyncio
+
         asyncio.run(logger.log(record))
 
         assert logger.total_records == 1
@@ -71,22 +70,30 @@ class TestAuditLogger:
         logger = AuditLogger(enabled=False)
         import asyncio
 
-        asyncio.run(logger.log(CallRecord(
-            model="gpt-4o",
-            prompt_tokens=100,
-            completion_tokens=50,
-            cost_usd=0.001,
-            latency_ms=150.0,
-            status="success",
-        )))
-        asyncio.run(logger.log(CallRecord(
-            model="qwen-plus",
-            prompt_tokens=200,
-            completion_tokens=100,
-            cost_usd=0.002,
-            latency_ms=200.0,
-            status="success",
-        )))
+        asyncio.run(
+            logger.log(
+                CallRecord(
+                    model="gpt-4o",
+                    prompt_tokens=100,
+                    completion_tokens=50,
+                    cost_usd=0.001,
+                    latency_ms=150.0,
+                    status="success",
+                )
+            )
+        )
+        asyncio.run(
+            logger.log(
+                CallRecord(
+                    model="qwen-plus",
+                    prompt_tokens=200,
+                    completion_tokens=100,
+                    cost_usd=0.002,
+                    latency_ms=200.0,
+                    status="success",
+                )
+            )
+        )
 
         summary = logger.get_summary()
         assert summary["total_calls"] == 2
@@ -123,14 +130,18 @@ class TestAuditLogger:
             try:
                 import asyncio
 
-                asyncio.run(logger.log(CallRecord(
-                    model="gpt-4o",
-                    prompt_tokens=10,
-                    completion_tokens=5,
-                    cost_usd=0.00005,
-                    latency_ms=100.0,
-                    status="success",
-                )))
+                asyncio.run(
+                    logger.log(
+                        CallRecord(
+                            model="gpt-4o",
+                            prompt_tokens=10,
+                            completion_tokens=5,
+                            cost_usd=0.00005,
+                            latency_ms=100.0,
+                            status="success",
+                        )
+                    )
+                )
 
                 # Verify file was written
                 assert log_path.exists()

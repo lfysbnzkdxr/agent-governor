@@ -2,14 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from agent_governor.governor import Governor
+if TYPE_CHECKING:
+    from agent_governor.governor import Governor
 
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def governed(governor: Governor) -> Callable[[F], F]:
+class _GovernedFunc:
+    """Wrapper to attach governor reference to a function."""
+
+    def __init__(self, func: F, governor: Governor) -> None:
+        self._func = func
+        self._governor = governor
+
+    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return await self._func(*args, **kwargs)
+
+
+def governed(governor: Governor) -> Callable[[F], _GovernedFunc]:
     """Decorator that marks a function as governed by Agent Governor.
 
     Attaches the governor instance to the function for introspection
@@ -33,9 +46,7 @@ def governed(governor: Governor) -> Callable[[F], F]:
         Decorator function.
     """
 
-    def decorator(func: F) -> F:
-        # Attach governor reference for introspection
-        setattr(func, "_governor", governor)
-        return func
+    def decorator(func: F) -> _GovernedFunc:
+        return _GovernedFunc(func, governor)
 
     return decorator

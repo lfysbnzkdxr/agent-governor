@@ -1,7 +1,6 @@
 """Tests for async circuit breaker."""
 
 import asyncio
-import time
 
 import pytest
 
@@ -43,9 +42,7 @@ class TestCircuitBreakerStates:
         assert cb.state == CircuitState.HALF_OPEN
 
     async def test_half_open_success_closes(self):
-        cb = CircuitBreaker(
-            failure_threshold=1, recovery_timeout=0.1, success_threshold=2
-        )
+        cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1, success_threshold=2)
         await cb.record_failure()
         await asyncio.sleep(0.15)
 
@@ -70,9 +67,7 @@ class TestCircuitBreakerStates:
         assert cb.state == CircuitState.OPEN
 
     async def test_half_open_limits_calls(self):
-        cb = CircuitBreaker(
-            failure_threshold=1, recovery_timeout=0.1, half_open_max_calls=2
-        )
+        cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1, half_open_max_calls=2)
         await cb.record_failure()
         await asyncio.sleep(0.15)
 

@@ -6,9 +6,10 @@ structural subtyping - third parties can adapt without inheritance.
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from agent_governor.models import CallRecord, Task, TaskResult, ValidationResult
+if TYPE_CHECKING:
+    from agent_governor.models import CallRecord, Task, TaskResult, ValidationResult
 
 
 @runtime_checkable

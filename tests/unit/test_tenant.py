@@ -88,9 +88,7 @@ class TestTenantManager:
         mgr.check_budget("free")  # Should not raise (0 = unlimited)
 
     def test_check_model_allowed(self):
-        config = MultiTenantConfig(
-            tenants={"restricted": TenantPolicy(allowed_models=["gpt-4o"])}
-        )
+        config = MultiTenantConfig(tenants={"restricted": TenantPolicy(allowed_models=["gpt-4o"])})
         mgr = TenantManager(config)
         assert mgr.check_model_allowed("restricted", "gpt-4o") is True
         assert mgr.check_model_allowed("restricted", "claude-3-opus") is False
@@ -150,9 +148,7 @@ class TestTenantManager:
 
 class TestBillingReport:
     def test_generate_report(self):
-        config = MultiTenantConfig(
-            tenants={"team-a": TenantPolicy(budget_usd=10.0)}
-        )
+        config = MultiTenantConfig(tenants={"team-a": TenantPolicy(budget_usd=10.0)})
         mgr = TenantManager(config)
         mgr.record_usage("team-a", "gpt-4o", 1000, 500)
 

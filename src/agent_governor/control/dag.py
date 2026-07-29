@@ -10,7 +10,8 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
@@ -22,10 +23,11 @@ from agent_governor.models import (
     Task,
     TaskResult,
     TaskStatus,
-    ValidationResult,
 )
-from agent_governor.observability.tracing import TracingManager
-from agent_governor.protocols import QualityGate
+
+if TYPE_CHECKING:
+    from agent_governor.observability.tracing import TracingManager
+    from agent_governor.protocols import QualityGate
 
 logger = structlog.get_logger(__name__)
 
@@ -195,16 +197,16 @@ class TaskGraph:
 
     def _detect_cycle(self) -> list[str] | None:
         """Detect cycle using DFS. Returns cycle path if found."""
-        WHITE, GRAY, BLACK = 0, 1, 2
-        color: dict[str, int] = {n: WHITE for n in self._nodes}
+        white, gray, black = 0, 1, 2
+        color: dict[str, int] = {n: white for n in self._nodes}
         parent: dict[str, str | None] = {n: None for n in self._nodes}
 
         def dfs(node: str) -> list[str] | None:
-            color[node] = GRAY
+            color[node] = gray
             for dep in self._edges.get(node, set()):
                 if dep not in color:
                     continue
-                if color[dep] == GRAY:
+                if color[dep] == gray:
                     # Found cycle - reconstruct path
                     cycle = [dep, node]
                     current = node
@@ -213,16 +215,16 @@ class TaskGraph:
                         cycle.append(current)
                     cycle.reverse()
                     return cycle
-                if color[dep] == WHITE:
+                if color[dep] == white:
                     parent[dep] = node
                     result = dfs(dep)
                     if result:
                         return result
-            color[node] = BLACK
+            color[node] = black
             return None
 
         for node in self._nodes:
-            if color[node] == WHITE:
+            if color[node] == white:
                 result = dfs(node)
                 if result:
                     return result
@@ -233,8 +235,13 @@ class _NodeDef:
     """Internal node definition."""
 
     __slots__ = (
-        "node_id", "task", "executor", "gate",
-        "max_retries", "timeout", "metadata",
+        "node_id",
+        "task",
+        "executor",
+        "gate",
+        "max_retries",
+        "timeout",
+        "metadata",
     )
 
     def __init__(
@@ -327,7 +334,7 @@ class DagExecutionEngine:
             total_nodes=len(graph.nodes),
         )
 
-        for layer_idx, layer in enumerate(layers):
+        for _layer_idx, layer in enumerate(layers):
             if has_failure and self._fail_fast:
                 # Skip remaining layers
                 for node_id in layer:
@@ -343,9 +350,7 @@ class DagExecutionEngine:
                 tasks_map: dict[str, asyncio.Task[DagNodeResult]] = {}
                 for node_id in layer:
                     node_def = graph.nodes[node_id]
-                    t = tg.create_task(
-                        self._execute_node(node_def, node_results, ctx)
-                    )
+                    t = tg.create_task(self._execute_node(node_def, node_results, ctx))
                     tasks_map[node_id] = t
 
             # Collect results
@@ -359,9 +364,7 @@ class DagExecutionEngine:
 
         # Compute totals
         total_cost = sum(
-            nr.result.cost_usd
-            for nr in node_results.values()
-            if nr.result is not None
+            nr.result.cost_usd for nr in node_results.values() if nr.result is not None
         )
 
         exec_result.node_results = node_results
@@ -371,8 +374,7 @@ class DagExecutionEngine:
 
         if has_failure:
             failed_nodes = [
-                nid for nid, nr in node_results.items()
-                if nr.status == DagNodeStatus.FAILED
+                nid for nid, nr in node_results.items() if nr.status == DagNodeStatus.FAILED
             ]
             exec_result.error = f"Failed nodes: {failed_nodes}"
 
@@ -483,10 +485,8 @@ class DagExecutionEngine:
                 logger.debug("node_completed", node_id=node_id, attempt=attempt + 1)
                 return node_result
 
-            except asyncio.TimeoutError:
-                last_error = GovernorError(
-                    f"Node '{node_id}' timed out after {timeout}s"
-                )
+            except TimeoutError:
+                last_error = GovernorError(f"Node '{node_id}' timed out after {timeout}s")
             except Exception as e:
                 last_error = e
 

@@ -50,9 +50,7 @@ class KeyedSemaphore:
         self._default_limit = default_limit
         self._key_limits = key_limits or {}
         self._semaphores: dict[str, asyncio.Semaphore] = {}
-        self._global_semaphore = (
-            asyncio.Semaphore(global_limit) if global_limit > 0 else None
-        )
+        self._global_semaphore = asyncio.Semaphore(global_limit) if global_limit > 0 else None
 
     def _get_semaphore(self, key: str) -> asyncio.Semaphore:
         """Get or create a semaphore for the given key."""

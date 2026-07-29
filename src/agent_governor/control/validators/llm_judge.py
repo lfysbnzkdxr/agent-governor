@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 import structlog
 
@@ -76,7 +77,6 @@ class LLMJudgeGate:
 
     async def check(self, task: Task, result: TaskResult) -> ValidationResult:
         """Use LLM to judge the quality of the result."""
-        import json
 
         # Build task description from messages
         task_desc = ""
@@ -92,9 +92,7 @@ class LLMJudgeGate:
         )
 
         try:
-            judge_response = await self._llm_call(
-                [{"role": "user", "content": prompt}]
-            )
+            judge_response = await self._llm_call([{"role": "user", "content": prompt}])
 
             # Parse judge response
             score, reason = self._parse_judge_response(judge_response)

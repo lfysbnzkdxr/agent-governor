@@ -175,9 +175,7 @@ class CostTracker:
 
         # Prefix match - sort by key length descending so "gpt-4o-mini"
         # matches before "gpt-4o"
-        for prefix, price in sorted(
-            self.pricing.items(), key=lambda x: len(x[0]), reverse=True
-        ):
+        for prefix, price in sorted(self.pricing.items(), key=lambda x: len(x[0]), reverse=True):
             if model.startswith(prefix):
                 return price
 

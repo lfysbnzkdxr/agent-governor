@@ -6,15 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# Import the module so we can use patch.object
+import agent_governor.observability.tracing as tracing_mod
 from agent_governor.observability.tracing import (
     OTEL_AVAILABLE,
     TracedExecutor,
     TracingManager,
     traced,
 )
-
-# Import the module so we can use patch.object
-import agent_governor.observability.tracing as tracing_mod
 
 
 class TestTracingManager:
@@ -91,9 +90,11 @@ class TestTracedDecorator:
         # Patch OTEL_AVAILABLE to True and provide a mock trace module
         mock_trace = MagicMock()
         mock_trace.get_tracer.return_value = mock_tracer
-        with patch.object(tracing_mod, "OTEL_AVAILABLE", True):
-            with patch.object(tracing_mod, "trace", mock_trace):
-                result = await my_func(5)
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(tracing_mod, "trace", mock_trace),
+        ):
+            result = await my_func(5)
 
         assert result == 10
         assert calls == [5]
@@ -114,9 +115,11 @@ class TestTracedDecorator:
 
         mock_trace = MagicMock()
         mock_trace.get_tracer.return_value = mock_tracer
-        with patch.object(tracing_mod, "OTEL_AVAILABLE", True):
-            with patch.object(tracing_mod, "trace", mock_trace):
-                result = await my_func()
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(tracing_mod, "trace", mock_trace),
+        ):
+            result = await my_func()
 
         assert result.status == "completed"
         mock_span.set_attribute.assert_any_call("agent_governor.status", "completed")
@@ -153,9 +156,11 @@ class TestTracedExecutor:
         executor = TracedExecutor(inner=mock_inner)
         mock_trace = MagicMock()
         mock_trace.get_tracer.return_value = mock_tracer
-        with patch.object(tracing_mod, "OTEL_AVAILABLE", True):
-            with patch.object(tracing_mod, "trace", mock_trace):
-                result = await executor.execute(task)
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(tracing_mod, "trace", mock_trace),
+        ):
+            result = await executor.execute(task)
 
         assert result == "result"
         mock_span.set_attribute.assert_any_call("agent_governor.task.name", "test_task")
@@ -176,10 +181,12 @@ class TestTracedExecutor:
         executor = TracedExecutor(inner=mock_inner)
         mock_trace = MagicMock()
         mock_trace.get_tracer.return_value = mock_tracer
-        with patch.object(tracing_mod, "OTEL_AVAILABLE", True):
-            with patch.object(tracing_mod, "trace", mock_trace):
-                with pytest.raises(ValueError, match="test error"):
-                    await executor.execute(task)
+        with (
+            patch.object(tracing_mod, "OTEL_AVAILABLE", True),
+            patch.object(tracing_mod, "trace", mock_trace),
+            pytest.raises(ValueError, match="test error"),
+        ):
+            await executor.execute(task)
 
         mock_span.set_attribute.assert_any_call("agent_governor.status", "error")
         mock_span.record_exception.assert_called_once()
