@@ -39,6 +39,8 @@ mkdocs serve
 Governor (governor.py)
 ├── control/     — DAG 编排、质量门校验、状态管理
 ├── data/        — 调度执行、熔断器、并发控制、外部执行器
+├── policy/      — 声明式策略引擎（budget / rate_limit / model_whitelist）
+├── tenant/      — 多租户预算隔离、计费报告
 └── observability/ — Tracing、Metrics、审计日志、成本追踪
 ```
 
@@ -60,8 +62,8 @@ Dispatcher 在调用前执行治理逻辑：模型白名单检查 → 预算预�
 
 - `dag`: networkx（DAG 编排）
 - `telemetry`: opentelemetry（Tracing + Metrics）
-- `mcp`: mcp SDK（MCP 工具执行器）
-- `http`: httpx（HTTP 执行器）
+- `mcp`: mcp SDK（MCP 工具执行器，已废弃，v1.0 移除）
+- `http`: httpx（HTTP 执行器，已废弃，v1.0 移除）
 - `redis`: redis[hiredis]（状态后端）
 
 observability 层的 OTel 组件通过 try/except ImportError 实现优雅降级。

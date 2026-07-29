@@ -77,6 +77,8 @@ async with governor:
 - **降级路由** — 主模型失败自动切换备用模型
 - **审计日志** — 每次 LLM 调用的结构化 JSON 记录
 - **成本追踪** — 按模型累计 token 用量与费用
+- **多租户** — 按租户隔离预算、速率限制、模型白名单
+- **策略引擎** — 声明式规则（budget / rate_limit / model_whitelist）
 
 ### DAG 编排与韧性
 
@@ -92,8 +94,8 @@ async with governor:
 
 - **OTel Tracing** — Governor / Dispatcher / DAG 三层 Span，OTLP 导出
 - **OTel Metrics** — 调用计数、错误计数、预算超限、延迟直方图、token 直方图
-- **MCP 执行器** — 包装 `mcp.ClientSession.call_tool()`
-- **HTTP 执行器** — httpx 连接池，通用 REST API 调用
+- **MCP 执行器** — 包装 `mcp.ClientSession.call_tool()` *(已废弃，v1.0 移除)*
+- **HTTP 执行器** — httpx 连接池，通用 REST API 调用 *(已废弃，v1.0 移除)*
 - **成本报告 CLI** — `agent-governor-report` 命令行工具
 
 ## CLI 工具
@@ -115,8 +117,11 @@ src/agent_governor/
 ├── models.py            # Task / TaskResult 数据模型
 ├── protocols.py         # Executor / QualityGate 协议定义
 ├── exceptions.py        # 异常体系
+├── decorators.py        # @governed 装饰器
 ├── control/             # 控制层：DAG、质量门、状态管理
 ├── data/                # 数据层：调度、熔断、并发、执行器
+├── policy/              # 策略引擎：声明式规则
+├── tenant/              # 多租户：预算隔离、计费
 ├── observability/       # 可观测层：Tracing、Metrics、审计、成本
 └── cli/                 # 命令行工具
 ```
