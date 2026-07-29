@@ -32,7 +32,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--group-by",
-        choices=["model", "caller", "day"],
+        choices=["model", "caller", "day", "tenant"],
         default="model",
         help="Group records by field (default: model)",
     )
@@ -185,7 +185,9 @@ def main(argv: list[str] | None = None) -> None:
         print("No records found in audit log.")
         return
 
-    data = aggregate(records, args.group_by)
+    # Map CLI name to record field name
+    group_field = "tenant_id" if args.group_by == "tenant" else args.group_by
+    data = aggregate(records, group_field)
 
     if args.format == "json":
         print(json.dumps(data, indent=2, ensure_ascii=False))

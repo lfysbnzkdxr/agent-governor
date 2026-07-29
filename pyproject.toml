@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-governor"
-version = "0.3.0"
-description = "Lightweight Agent governance and execution middleware - cost control, audit, and model routing"
+version = "0.4.0"
+description = "Embedded multi-tenant Agent governance engine - cost attribution, declarative policies, and audit"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
     { name = "lfysbnzkdxr" },
 ]
-keywords = ["agent", "llm", "governance", "cost-control", "audit", "middleware"]
+keywords = ["agent", "llm", "governance", "multi-tenant", "cost-control", "policy-engine", "audit"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -32,13 +32,16 @@ dependencies = [
 [project.optional-dependencies]
 dag = ["networkx>=3.0"]
 resilience = []
+policy = ["pyyaml>=6.0"]
 telemetry = [
     "opentelemetry-api>=1.25",
     "opentelemetry-sdk>=1.25",
     "opentelemetry-exporter-otlp>=1.25",
 ]
 redis = ["redis[hiredis]>=5.0"]
+# DEPRECATED: will be removed in v1.0
 mcp = ["mcp>=1.0"]
+# DEPRECATED: will be removed in v1.0
 http = ["httpx>=0.27"]
 docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.25"]
 dev = [
@@ -48,8 +51,9 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.10",
     "pre-commit>=3.0",
+    "pyyaml>=6.0",
 ]
-all = ["agent-governor[dag,telemetry,redis,mcp,http]"]
+all = ["agent-governor[dag,policy,telemetry,redis]"]
 
 [project.scripts]
 agent-governor-report = "agent_governor.cli.report:main"

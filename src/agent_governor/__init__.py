@@ -8,6 +8,8 @@ from agent_governor.exceptions import (
     ExecutionTimeoutError,
     GovernorError,
     ModelNotAllowedError,
+    RateLimitExceededError,
+    TenantBudgetExceededError,
     ValidationError,
 )
 from agent_governor.governor import Governor
@@ -21,6 +23,8 @@ from agent_governor.models import (
     TokenUsage,
     ValidationResult,
 )
+from agent_governor.policy import PolicyDecision, PolicyEngine, PolicyRule
+from agent_governor.tenant import BillingReport, MultiTenantConfig, TenantManager, TenantPolicy
 
 __all__ = [
     # Core
@@ -34,6 +38,8 @@ __all__ = [
     "ExecutionTimeoutError",
     "CircuitOpenError",
     "ValidationError",
+    "TenantBudgetExceededError",
+    "RateLimitExceededError",
     # Models
     "Task",
     "TaskResult",
@@ -43,6 +49,15 @@ __all__ = [
     "DagExecutionResult",
     "DagNodeResult",
     "DagNodeStatus",
+    # Multi-tenant
+    "TenantManager",
+    "TenantPolicy",
+    "MultiTenantConfig",
+    "BillingReport",
+    # Policy
+    "PolicyEngine",
+    "PolicyRule",
+    "PolicyDecision",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

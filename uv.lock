@@ -14,7 +14,7 @@ resolution-markers = [
 
 [[package]]
 name = "agent-governor"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "litellm" },
@@ -24,12 +24,11 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "httpx" },
-    { name = "mcp" },
     { name = "networkx" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp" },
     { name = "opentelemetry-sdk" },
+    { name = "pyyaml" },
     { name = "redis", extra = ["hiredis"] },
 ]
 dag = [
@@ -41,6 +40,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 docs = [
@@ -53,6 +53,9 @@ http = [
 mcp = [
     { name = "mcp" },
 ]
+policy = [
+    { name = "pyyaml" },
+]
 redis = [
     { name = "redis", extra = ["hiredis"] },
 ]
@@ -64,7 +67,7 @@ telemetry = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-governor", extras = ["dag", "telemetry", "redis", "mcp", "http"], marker = "extra == 'all'" },
+    { name = "agent-governor", extras = ["dag", "policy", "telemetry", "redis"], marker = "extra == 'all'" },
     { name = "httpx", marker = "extra == 'http'", specifier = ">=0.27" },
     { name = "litellm", specifier = ">=1.40,<2" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0" },
@@ -80,11 +83,13 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pyyaml", marker = "extra == 'policy'", specifier = ">=6.0" },
     { name = "redis", extras = ["hiredis"], marker = "extra == 'redis'", specifier = ">=5.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
     { name = "structlog", specifier = ">=24.1" },
 ]
-provides-extras = ["dag", "resilience", "telemetry", "redis", "mcp", "http", "docs", "dev", "all"]
+provides-extras = ["dag", "resilience", "policy", "telemetry", "redis", "mcp", "http", "docs", "dev", "all"]
 
 [[package]]
 name = "aiohappyeyeballs"

@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from agent_governor.tenant.config import TenantPolicy
 
 
 class GovernorConfig(BaseModel):
@@ -44,6 +49,14 @@ class GovernorConfig(BaseModel):
     # Tracing (Phase 3)
     tracing_enabled: bool = Field(default=False, description="Enable OTel distributed tracing")
     otlp_endpoint: str = Field(default="", description="OTLP collector endpoint URL (e.g. http://localhost:4317)")
+
+    # Multi-tenant (Phase 4)
+    tenant_policies: dict[str, TenantPolicy] = Field(
+        default_factory=dict, description="Per-tenant policy configs (TenantPolicy instances)"
+    )
+    default_tenant_policy: TenantPolicy | None = Field(
+        default=None, description="Default policy for unconfigured tenants"
+    )
 
     def is_model_allowed(self, model: str) -> bool:
         """Check if a model is in the whitelist."""

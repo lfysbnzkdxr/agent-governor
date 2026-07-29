@@ -1,4 +1,18 @@
-"""Executors - LLM, MCP, and HTTP execution backends."""
+"""Executors - MCP and HTTP execution backends.
+
+DEPRECATED: This module will be removed in v1.0.
+These executors are orthogonal to the core governance mission.
+Consider using dedicated libraries (mcp SDK, httpx) directly.
+"""
+
+import warnings
+
+warnings.warn(
+    "agent_governor.data.executors is deprecated and will be removed in v1.0. "
+    "Use dedicated libraries (mcp SDK, httpx) directly instead.",
+    FutureWarning,
+    stacklevel=2,
+)
 
 __all__: list[str] = []
 

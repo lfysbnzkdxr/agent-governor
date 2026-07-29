@@ -71,3 +71,39 @@ class ValidationError(GovernorError):
     def __init__(self, message: str = "Validation failed", *, gate_name: str = "") -> None:
         self.gate_name = gate_name
         super().__init__(message, detail=f"gate={gate_name}")
+
+
+class TenantBudgetExceededError(GovernorError):
+    """Raised when a tenant's cost budget is exceeded."""
+
+    def __init__(
+        self,
+        tenant_id: str = "",
+        *,
+        current_cost: float = 0.0,
+        budget: float = 0.0,
+    ) -> None:
+        self.tenant_id = tenant_id
+        self.current_cost = current_cost
+        self.budget = budget
+        super().__init__(
+            f"Tenant '{tenant_id}' budget exceeded",
+            detail=f"tenant_id={tenant_id}, current_cost=${current_cost:.4f}, budget=${budget:.4f}",
+        )
+
+
+class RateLimitExceededError(GovernorError):
+    """Raised when a tenant's rate limit is exceeded."""
+
+    def __init__(
+        self,
+        tenant_id: str = "",
+        *,
+        retry_after: float = 0.0,
+    ) -> None:
+        self.tenant_id = tenant_id
+        self.retry_after = retry_after
+        super().__init__(
+            f"Tenant '{tenant_id}' rate limit exceeded",
+            detail=f"tenant_id={tenant_id}, retry_after={retry_after:.2f}s",
+        )
