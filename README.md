@@ -54,6 +54,35 @@ graph.add_node("validate", task=Task(name="validate"), depends_on=["analyze"],
 result = await governor.run_graph(graph)
 ```
 
+### 嵌入已有 Agent 框架
+
+Governor 是调用层中间件，与编排层完全解耦。不管你用 LangGraph、CrewAI 还是自己写的循环，
+只需把 LLM 调用点替换为 `governor.execute()`，即可透明获得治理能力：
+
+```python
+from agent_governor import Governor, GovernorConfig, TenantPolicy
+
+governor = Governor(config=GovernorConfig(
+    budget_usd=5.0,
+    models=["gpt-4o", "gpt-4o-mini"],
+    fallback_model="gpt-4o-mini",
+    tenant_policies={
+        "team-a": TenantPolicy(budget_usd=3.0, allowed_models=["gpt-4o", "gpt-4o-mini"]),
+        "team-b": TenantPolicy(budget_usd=1.0, allowed_models=["gpt-4o-mini"]),
+    },
+))
+
+# 在你的 Agent 节点/步骤中，替换原来的 litellm.acompletion()
+async def my_agent_step(query: str, tenant_id: str) -> str:
+    return await governor.execute(
+        messages=[{"role": "user", "content": query}],
+        name="agent_step",
+        tenant_id=tenant_id,  # 自动归因到对应租户预算
+    )
+```
+
+完整示例：[examples/custom_agent_integration.py](examples/custom_agent_integration.py)（ReAct Agent + 多租户 + 预算拦截）
+
 ### 可观测性：OTel Tracing + Metrics
 
 ```python
